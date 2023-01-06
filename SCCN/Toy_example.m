@@ -10,8 +10,10 @@
 %          3. Voxel i is from region A; voxel j is from region B
 
 load('W0.mat');
-figure; imagesc(W0);colormap jet;colormap;
+figure; imagesc(W0);colormap jet;colorbar;
+set(gca, 'clim', [0 15]);
 title('W0 - raw data');
+
 
 % 1.2. Perform screening on W0 
 % Details: 1. The post-screened inference matrix W can effectively exclude 
@@ -20,7 +22,8 @@ title('W0 - raw data');
 %          3. The real threshold for W0= -log(p_ij) is -log(0.05)~=3
 cutoff=3;
 W=W0;W(W<cutoff)=0;
-figure; imagesc(W);colormap jet;colormap;
+figure; imagesc(W);colormap jet;colorbar;
+set(gca, 'clim', [0 15]);
 title('W - Before SCCN');
 
 %1.3. Construct S_A, S_B, the infrastructure graph
@@ -38,7 +41,7 @@ A_1d=pdist(IJ_A,'chebychev');  %pairwise chebychev distance between all 900 voxe
 A_2d=squareform(A_1d);  %900*900 distance matrix
 S_A=A_2d;              
 S_A(S_A>sqrt(2))=0;    %set distance between non-adjacent voxels to 0
-figure;imagesc(S_A);
+figure;imagesc(S_A);colorbar;
 
 %Construct S_B
 N_B=sqrt(size(W,2)); %side length of Region B 
@@ -50,14 +53,14 @@ B_1d=pdist(IJ_B,'chebychev');  %pairwise chebychev distance between all 900 voxe
 B_2d=squareform(B_1d);  %1600*1600 distance matrix
 S_B=B_2d;              
 S_B(S_B>sqrt(2))=0;    %set distance between non-adjacent voxels to 0
-figure;imagesc(S_B);
+figure;imagesc(S_B);colorbar;
 
 
 %%%%%%%%%%%%%%% Step 2. Implement SCCN with input {W, S_A, S_B} %%%%%%%%%%%%%%%
 %set parameters based on prior domain knowledge 
 r=3.5;  %threshold for W, set p=0.03 <=>-log(p)~=3.5
 lambda=1.4;  %tuning paramter in objective function
-num_skips=350; %the number of skips between iterations 
+num_skips=50; %the number of skips between iterations 
 kmeans_iter=3; %numbers of iterations set for k-means clustering
 fig=1 ;% 1 if we want to view the output performance of different cluster sizes; 0 otherwise
 

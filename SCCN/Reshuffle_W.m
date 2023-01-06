@@ -63,7 +63,7 @@ function [A_ID, Alist, B_ID, Blist]=Reshuffle_W(Ka,Kb,A_idx,B_idx,W, r, lambda)
     %Visualize reshuffled W:
     Worder= W(Alist,Blist');
     figure;
-    imagesc(Worder ); colorbar 
-    colormap jet
+    imagesc(Worder ); colorbar; colormap jet;
+    set(gca, 'clim', [0 15]);
     title('Reshuffled W - After SCCN');    
 end 
