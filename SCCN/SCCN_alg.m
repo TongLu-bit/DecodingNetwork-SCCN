@@ -1,4 +1,4 @@
-function [Ka, Kb, Uc_idx,Ud_idx]=SCCN_alg(W, S_A, S_B, r, lambda, num_skips, kmeans_iter, fig)
+function [Ka, Kb, A_idx,B_idx]=SCCN_alg(W, S_A, S_B, r, lambda, num_skips, kmeans_iter, fig)
     %%%% This function applies the SCCN algorithm to yield true sub-area
     %%%% pair network structure from a ROI pair. 
     
@@ -16,16 +16,12 @@ function [Ka, Kb, Uc_idx,Ud_idx]=SCCN_alg(W, S_A, S_B, r, lambda, num_skips, kme
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Outputs:
     
-    %%%%%  A_ID:     the cluster index of each cluster in ROI A in a power descending
-    %%%%%           order. i.e. A_ID(1) will be the cluster index of voxels in ROI A coming from the most
-    %%%%%           concentrated sub-area pair
-    %%%%%  Aindex:    the cluster index of every voxel in ROI A
-    %%%%%  Alist:   the reordered voxel index, voxel in the same cluster are
-    %%%%%           permuted together in such way: [find(Aindx==A_ID(1))
-    %%%%%           find(Aindx==A_ID(2)) ... find(Aindx==A_ID(K))]
-    %%%%%  B_ID, Bindex, Blist are defined similarly as above. 
+    %%%%% Ka: number of clusters (i.e., sub-areas) partitioned for ROI A by SCCN
+    %%%%% Kb: number of clusters (i.e., sub-areas) partitioned for ROI B by SCCN
+    %%%%% A_idx: the node membership of ROI A
+    %%%%% B_idx: the node membership of ROI B
         
-    %% incorporate spatial-contiguity constraint into W
+    %% Incorporate spatial-contiguity constraint into W
     nrow=size(W,1);ncol=size(W,2);
     WA=W*W.'.*S_A;  WB=W.'*W.*S_B; %
         
@@ -52,7 +48,8 @@ function [Ka, Kb, Uc_idx,Ud_idx]=SCCN_alg(W, S_A, S_B, r, lambda, num_skips, kme
     %%%%% Determine the optimal numbers of clusters Ka, Kb, for ROI A and ROI B respectively 
     Cqual=[]; %the output values of the objective function for each (Ka, Kb) pair
     for Ka=1:num_skips:nrow 
-         Ka %just displayed to show iteration progress
+         disp('Display Ka(# of cluters) to show iteration progress:');
+         Ka  
          Ca=kmeans(Ua,Ka,'Replicates',kmeans_iter);   %cluters for nodes in ROI A
         for Kb=1:num_skips:ncol 
             Cb=kmeans(Ub,Kb,'Replicates',kmeans_iter);  %cluters for nodes in ROI B
@@ -74,6 +71,10 @@ function [Ka, Kb, Uc_idx,Ud_idx]=SCCN_alg(W, S_A, S_B, r, lambda, num_skips, kme
 
     if fig==1
     figure; surf(Cqual(1:num_skips:nrow,1:num_skips:ncol));
+    title('Outputs of objective function given different values of (Ka, Kb)')
+    xlabel('Ka (# clusters for ROI A)')
+    ylabel('Kb (# clusters for ROI B)')
+    zlabel('Outputs of objective function')
     end
      
     %%%%% find the optimal Ka, Kb that gives the maximum output value:
@@ -82,6 +83,6 @@ function [Ka, Kb, Uc_idx,Ud_idx]=SCCN_alg(W, S_A, S_B, r, lambda, num_skips, kme
     [Ka,Kb]=ind2sub([size(Cqual,1),size(Cqual,2)],K); %optimal numbers of clusters 
 
     %%%%% Sub-area network structure
-    Uc_idx=kmeans(Ua,Ka,'Replicates',kmeans_iter); %node memberships in ROI A
-    Ud_idx=kmeans(Ub,Kb,'Replicates',kmeans_iter);  %node memberships in ROI B
+    A_idx=kmeans(Ua,Ka,'Replicates',kmeans_iter); %node memberships of ROI A
+    B_idx=kmeans(Ub,Kb,'Replicates',kmeans_iter);  %node memberships of ROI B
 end 
