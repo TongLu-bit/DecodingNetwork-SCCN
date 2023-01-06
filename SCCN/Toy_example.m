@@ -1,4 +1,4 @@
-%Toy example
+% This is a top example to implement SCCN on a synthetic data. 
 
 %%%%%%%%%%%%%%% Step 1. Load, construct, and process input data %%%%%%%%%%%%%%%
 % 1.1. Load W0, the inference connectivity matrix between region A and B
@@ -66,4 +66,4 @@ fig=1 ;% 1 if we want to view the output performance of different cluster sizes;
 
 % Resuffles the input inference matrix W based on the extracted network
 % structures by the SCCN_alg function above
-[A_ID, Alist, B_ID, Blist]=Reshuffle_W(Ka,Kb,A_idx,B_idx,W, r,lambda); 
+[A_ID, Alist, B_ID, Blist]=Reshuffle_W(Ka, Kb, A_idx, B_idx, W, r, lambda); 
