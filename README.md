@@ -7,4 +7,4 @@ This is a repository that contains codes for the **S**patially **C**onstrained a
 Note that the optimization is non-convex and may depend on the intitialization of the algorithms.
 
 \
-![Image](/SCCN/SCCN_pipeline.png)
+![Image](/SCCN_between/SCCN_pipeline.png)
