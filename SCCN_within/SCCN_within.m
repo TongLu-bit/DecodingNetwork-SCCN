@@ -1,4 +1,4 @@
-function [W_output, CID, Clist, C, z1]=SCCN_within(W, SA, threshold, lambda, num_iter, skip_step)
+function [CID_len, W_output, Clist]=SCCN_within(W, SA, threshold, sum_cutoff, lambda, num_iter, skip_step, show_figure, show_progress)
 %%%% This function is for detecting covariated-related subnetworks
 
 
@@ -33,15 +33,16 @@ function [W_output, CID, Clist, C, z1]=SCCN_within(W, SA, threshold, lambda, num
 
 
 %%% Outputs:
-%%%%%  Cindx:    the cluster/subnetwork index of every non-isolated node
-%%%%%  CID:     the cluster/subnetwork index of every cluster in a power descending
+%%%%%  CID_len:     First, CID stores the cluster/subnetwork index of every
+%%%%%           cluster in a power **descending**
 %%%%%           order. i.e. CID(1) will be the cluster index of the most
-%%%%%           concentrated cluster
+%%%%%           concentrated cluster. Next, CID_len stores the number of nodes
+%%%%%           in each CID
+%%%%%  W_output: Reorganized W that reveal subnetwork patterns
 %%%%%  Clist:   the reordered node index, nodes in the same cluster are
 %%%%%           permuted together in such way: [find(Cindx==CID(1))
 %%%%%           find(Cindx==CID(2)) ... find(Cindx==CID(K))]
-%%%%%  C:        cluster information
-%%%%%  z1:       indexes of nodes that pass screening
+
 
 
 
@@ -50,10 +51,12 @@ warning('off');
 %nlogp = -log(P)
 % W=squareform(nlogp);
 W1=W;
-W(W1<threshold)=0;%Threshold on the p-values
+%W(W1<threshold)=0;%Threshold on the p-values
+W(W1<-log(threshold))=0;%Threshold on the p-values
 
 %figure;imagesc(W)
-z1=find(sum(W)>0); %Exclude the isolated nodes
+z1=find(sum(W)>sum_cutoff); %Exclude the isolated nodes
+disp([' number of input nodes after screening: ',num2str(length(z1))])
 
 % if(isempty(z1))
 %     % if after the screening the matrix is all zero
@@ -78,9 +81,8 @@ LA=DA-WA;
 %% Determine the number of clusters K
 Mk=[];
 Qual=[];
-lenW=length(find(WA>0))/2 % # of sig. pts in Wa  e.g, lenW=137
+lenW=length(find(WA>0))/2; % # of sig. pts in Wa  e.g, lenW=137
 diff   = eps;
-
 
 
 
@@ -93,7 +95,13 @@ diff   = eps;
 for m=1:num_iter
     Prp_net=[];
     for K=1:skip_step:size(WA,1)
-        K
+        if show_progress==1
+            K
+        end
+%         if rem(K,100)==0
+%             disp(['current iteration K= ',num2str(K)])
+%         end 
+
 %         try
 %             [Ua, Ev_a] = eigs(LA,K, diff);
 %             %returns k eigenvalues based on the value of sigma. 
@@ -129,15 +137,16 @@ for m=1:num_iter
     Qual(:,m)=Prp_net;
 end
 
- figure;plot(Qual,'x');
- title('Optimzation of Objective Function','FontSize',20,'FontWeight','bold','Color','k');
-xlabel("Number of clusters",'FontSize',20,'FontWeight','bold','Color','k');
-ylabel("Output value of Objective Function",'FontSize',20,'FontWeight','bold','Color','k');
-
+if show_figure==1
+    figure;plot(Qual,'x');
+    title('Optimzation of Objective Function','FontSize',20,'FontWeight','bold','Color','k');
+    xlabel("Number of clusters",'FontSize',20,'FontWeight','bold','Color','k');
+    ylabel("Output value of Objective Function",'FontSize',20,'FontWeight','bold','Color','k');
+end 
 
 K=Mk(find(Mk(:,2)==max(Mk(:,2))),1);
-K=K(1)  %451 for 900*900
-
+K=K(1);  %451 for 900*900
+disp([' Optimal number of cluster: K= ',num2str(K)])
     
 %% Find the cluster ID for each of the nodes
 
@@ -163,20 +172,22 @@ for k=1:K
 end
 
 
-%Pard_diagscore=(C_net).^2 ./(A_net)/lenW;  
+%diagscore=(C_net).^2 ./(A_net)/lenW;  
 
-Pard_diagscore=(C_net).^lambda * (C_net/(A_net))^(2-lambda);  
-%Pard_diagscore=sum(C_net)^1.2 *  ( sum(C_net) / sum(A_net) )^(2-1.2);
+diagscore=(C_net).^lambda * (C_net/(A_net))^(2-lambda);  
+%diagscore=sum(C_net)^1.2 *  ( sum(C_net) / sum(A_net) )^(2-1.2);
 
 %isnan(A) returns a logical array containing 1 (true) 
 %where the elements of A are NaN
-Pard_diagscore(isnan(Pard_diagscore))=0;  %change NaN to 0
+diagscore(isnan(diagscore))=0;  %change NaN to 0
 
-[Pard_diagscore_sort,Pard_diagscore_sortID]=sort(Pard_diagscore,'descend');
-   
-Pard_inx_imporance=[];
+[diagscore_sort,diagscore_sortID]=sort(diagscore,'descend');
+  
+CID_len = [];
+inx_imporance=[];
 for i=1:K
-   Pard_inx_imporance=[  Pard_inx_imporance; find(C==Pard_diagscore_sortID(i))];
+   inx_imporance=[  inx_imporance; find(C==diagscore_sortID(i))];
+   CID_len = [CID_len; length(find(C==diagscore_sortID(i)))];
 end
 
 Cindx = 1:size(W,1); 
@@ -185,16 +196,17 @@ Cindx = 1:size(W,1);
 Cindx(z1)=C; 
 
 %setdiff(A,B): Find the values in A that are not in B.
-Cindx(setdiff(1:size(W,1),z1))=-1;
-CID=Pard_diagscore_sortID;
-Clist = z1(Pard_inx_imporance);
-Clist = [Clist setdiff(1:size(W,1),z1)];
+Cindx(setdiff(1:size(W1,1),z1))=-1;
+CID=diagscore_sortID;
+Clist = z1(inx_imporance);
+Clist = [Clist setdiff(1:size(W1,1),z1)];
+CID_len = [CID_len;length(setdiff(1:size(W1,1),z1))];
 W_output=W1(Clist,Clist);
 
-figure;
-imagesc(W_output);colormap jet;colorbar;ax=gca;ax.FontSize=18;ax.FontWeight='bold';
-title('Community subnetwork in heatmap','FontSize',20,'FontWeight','bold','Color','k');
-xlabel("Voxels in ROI A",'FontSize',20,'FontWeight','bold','Color','k');
-ylabel("Voxels in ROI A",'FontSize',20,'FontWeight','bold','Color','k');
+% figure;
+% imagesc(W_output);colormap jet;colorbar;ax=gca;ax.FontSize=18;ax.FontWeight='bold';
+% title('Community subnetwork in heatmap','FontSize',20,'FontWeight','bold','Color','k');
+% xlabel("Voxels in ROI A",'FontSize',20,'FontWeight','bold','Color','k');
+% ylabel("Voxels in ROI A",'FontSize',20,'FontWeight','bold','Color','k');
 
 end
